@@ -30,15 +30,11 @@ const Home = () => {
   const [totalCount, setTotalCount] = useState(0);
 
   // User State
-  const [favorites, setFavorites] = useState([]);
+  const [favorites, setFavorites] = useState(() => getFavorites());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   
   // Modal State
   const [selectedPokemon, setSelectedPokemon] = useState(null);
-
-  // Initialize favorites on mount
-  useEffect(() => {
-    setFavorites(getFavorites());
-  }, []);
 
   // Save favorites when changed
   useEffect(() => {
@@ -139,23 +135,30 @@ const Home = () => {
   // or fetch all names and filter. We'll filter the currently loaded list for simplicity and performance).
   // A true robust search needs to hit a different endpoint or fetch all locally.
   const displayedPokemon = useMemo(() => {
-    if (!searchQuery.trim()) return pokemonList;
-    return pokemonList.filter(p => 
+    let list = showFavoritesOnly ? favorites : pokemonList;
+    if (!searchQuery.trim()) return list;
+    return list.filter(p => 
       p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [pokemonList, searchQuery]);
+  }, [pokemonList, favorites, searchQuery, showFavoritesOnly]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      <Navbar favoritesCount={favorites.length} />
+      <Navbar 
+        favoritesCount={favorites.length}
+        onFavoritesClick={() => setShowFavoritesOnly(prev => !prev)}
+        showFavoritesOnly={showFavoritesOnly}
+      />
       
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <TypeFilter 
-            types={types} 
-            selectedType={selectedType} 
-            setSelectedType={setSelectedType} 
-          />
+          {!showFavoritesOnly && (
+            <TypeFilter 
+              types={types} 
+              selectedType={selectedType} 
+              setSelectedType={setSelectedType} 
+            />
+          )}
           <SearchBar 
             searchQuery={searchQuery} 
             setSearchQuery={setSearchQuery} 
@@ -185,8 +188,8 @@ const Home = () => {
               />
             )}
             
-            {/* Hide pagination if searching within the page */}
-            {!searchQuery && (
+            {/* Hide pagination if searching within the page or showing favorites */}
+            {!searchQuery && !showFavoritesOnly && (
               <Pagination 
                 offset={offset}
                 limit={LIMIT}
